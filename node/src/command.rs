@@ -14,7 +14,6 @@ use sc_service::{
     PartialComponents,
 };
 use sp_runtime::traits::AccountIdConversion;
-use std::sync::Arc;
 
 use crate::{
     chain_spec,
@@ -191,7 +190,7 @@ pub fn run() -> Result<()> {
 			match cmd {
 				BenchmarkCmd::Pallet(cmd) =>
 					if cfg!(feature = "runtime-benchmarks") {
-						runner.sync_run(|config| cmd.run::<sp_runtime::traits::HashingFor<Block>, ReclaimHostFunctions>(config))
+						runner.sync_run(|config| cmd.run_with_spec::<sp_runtime::traits::HashingFor<Block>, ReclaimHostFunctions>(Some(config.chain_spec)))
 					} else {
 						Err("Benchmarking wasn't enabled when building the node. \
 					You can enable it with `--features runtime-benchmarks`."
@@ -232,7 +231,7 @@ pub fn run() -> Result<()> {
 					crate::service::new_partial(&config, &cli.eth)?;
 				let (_, _, _, frontier_backend, _) = other;
 				let frontier_backend = match frontier_backend {
-					fc_db::Backend::KeyValue(kv) => Arc::new(kv),
+					fc_db::Backend::KeyValue(kv) => kv,
 					_ => panic!("Only fc_db::Backend::KeyValue supported"),
 				};
 				cmd.run(client, frontier_backend)
@@ -277,8 +276,8 @@ pub fn run() -> Result<()> {
 				crate::service::start_parachain_node(
 					config,
 					polkadot_config,
-                    eth_cfg,
-					collator_options,
+                    collator_options,
+                    &cli.eth,
 					id,
 					hwbench,
 				)
